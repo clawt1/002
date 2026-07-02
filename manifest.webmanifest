@@ -1,0 +1,16 @@
+{
+  "name": "O'LAB 004 Tablette locale",
+  "short_name": "O'LAB 004",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050807",
+  "theme_color": "#07110d",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "assets/olab-loyalty-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
