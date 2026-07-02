@@ -1,11 +1,11 @@
 :root {
   --bg: #050807;
-  --panel: #0e1b16;
+  --panel: rgba(14, 27, 22, 0.95);
   --panel2: #14261d;
-  --glass: rgba(255,255,255,.06);
+  --glass: rgba(255,255,255,.04);
   --line: rgba(255,255,255,.1);
-  --green: #58c848;
-  --green2: #2f8c29;
+  --green: #79c93c; /* Plus proche du vert O'Lab */
+  --green2: #4a8c1d;
   --gold: #f5c958;
   --red: #e0524b;
   --text: #f7fbf4;
@@ -123,9 +123,10 @@ button { cursor: pointer; border: 0; color: inherit; }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    radial-gradient(circle at 0 0, rgba(88,200,72,.09), transparent 22rem),
-    rgba(10,19,15,.9);
-  box-shadow: 0 16px 48px rgba(0,0,0,.28);
+    radial-gradient(circle at top left, rgba(121,201,60,.08), transparent 400px),
+    linear-gradient(145deg, rgba(20,38,29,0.9), rgba(10,19,15,0.95));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
 }
 .panel { padding: 22px; }
 .tile {
@@ -204,10 +205,38 @@ button { cursor: pointer; border: 0; color: inherit; }
   background: var(--glass);
   text-align: left;
 }
-.choice.active { outline: 2px solid rgba(88,200,72,.65); background: rgba(88,200,72,.17); }
+.choice.active { outline: 2px solid var(--green); background: rgba(121,201,60,.15); }
 .choice b, .choice span { display: block; }
-.choice b { font-size: 22px; }
-.choice span { margin-top: 7px; color: var(--muted); }
+.choice b { font-size: 20px; }
+.choice span { margin-top: 4px; color: var(--muted); font-size: 14px; }
+
+/* Product Cards in Sale */
+.prod-card {
+  display: flex; flex-direction: column; padding: 0; overflow: hidden;
+  position: relative;
+}
+.prod-img { width: 100%; height: 120px; object-fit: cover; }
+.prod-img-placeholder {
+  width: 100%; height: 120px; display: grid; place-items: center;
+  background: var(--panel2); font-size: 40px; color: var(--green);
+}
+.prod-info { padding: 12px; }
+.prod-alert {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--red); color: #fff; padding: 2px 8px;
+  border-radius: 8px; font-size: 12px; font-weight: 900;
+}
+
+/* Category Filter */
+.cat-filter {
+  display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px;
+  padding-bottom: 8px;
+}
+.cat-btn {
+  white-space: nowrap; padding: 10px 20px; border-radius: 14px;
+  background: var(--glass); font-weight: 800; border: 1px solid var(--line);
+}
+.cat-btn.active { background: var(--green); color: #000; border-color: var(--green); }
 .qty-display {
   display: grid; place-items: center;
   min-height: 112px;
@@ -328,8 +357,19 @@ button { cursor: pointer; border: 0; color: inherit; }
 }
 .chart-bar {
   width: 100%; background: linear-gradient(to top, var(--green2), var(--green));
-  border-radius: 6px 6px 0 0;
-  transition: height 1s ease-out;
+  border-radius: 8px 8px 0 0;
+  transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+.chart-bar::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  animation: shine 3s infinite;
+}
+@keyframes shine {
+  100% { transform: translateX(100%); }
 }
 .chart-label { font-size: 11px; color: var(--muted); font-weight: 800; }
 

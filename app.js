@@ -1,4 +1,6 @@
 const KEY = "olab004_tablet_local";
+// NOTE: Hardcoded PINs are for local kiosk/demo demonstration.
+// In a true production environment, these should be hashed and managed securely.
 const pins = { admin: "0420", staff: "2024" };
 let selectedRole = "admin";
 let currentScreen = "home";
@@ -13,10 +15,13 @@ const seed = {
     { id: "c3", name: "Sofia Fleurs", phone: "06 03 03 03 03", email: "sofia@olab.local", stamps: 4, segment: "Client", notes: "Nouveautés fleurs." },
   ],
   products: [
-    { id: "p1", name: "Amnesia CBD", category: "Fleurs", unit: "g", stock: 76.5, alert: 15 },
-    { id: "p2", name: "3x Filtre Lemon", category: "Résines", unit: "g", stock: 45, alert: 12 },
-    { id: "p3", name: "Huile Nateava 20%", category: "Huiles", unit: "pièce", stock: 8, alert: 3 },
-    { id: "p4", name: "Vape relax CBD", category: "E-liquides", unit: "pièce", stock: 7, alert: 5 },
+    { id: "p1", name: "Amnesia CBD", category: "Fleurs", unit: "g", stock: 76.5, alert: 15, img: "https://www.olabcbd.fr/wp-content/uploads/2024/01/Screenshot_20230422-175952_Chrome-300x300.jpg" },
+    { id: "p2", name: "3x Filtré Lemon", category: "Résines", unit: "g", stock: 45, alert: 12, img: "https://www.olabcbd.fr/wp-content/uploads/2024/01/Screenshot_20230422-140841_Chrome-2-300x300.jpg" },
+    { id: "p3", name: "3x Filtré Critical", category: "Résines", unit: "g", stock: 32, alert: 10, img: "https://www.olabcbd.fr/wp-content/uploads/2024/01/Screenshot_20250127_155410_Chrom-300x300.jpg" },
+    { id: "p4", name: "Arlequin", category: "Fleurs", unit: "g", stock: 28, alert: 8, img: "https://www.olabcbd.fr/wp-content/uploads/2024/01/Screenshot_20231111-131410_Chrome-300x300.jpg" },
+    { id: "p5", name: "Huile Nateava 20%", category: "Huiles", unit: "pièce", stock: 8, alert: 3 },
+    { id: "p6", name: "Miel au CBD", category: "Aliments", unit: "pièce", stock: 12, alert: 4 },
+    { id: "p7", name: "Vape relax CBD", category: "Vapes", unit: "pièce", stock: 7, alert: 5 },
   ],
   rewards: [
     { id: "r1", name: "10€ offerts", cost: 10 },
@@ -41,7 +46,13 @@ const save = () => localStorage.setItem(KEY, JSON.stringify(db));
 const product = (id) => db.products.find((p) => p.id === id);
 const client = (id) => db.clients.find((c) => c.id === id);
 const currentClient = () => client(db.selectedClientId) || db.clients[0];
-const initials = (name) => name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+const esc = (s) => (s == null ? "" : String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"));
+const initials = (name) => {
+  if (!name || typeof name !== "string") return "??";
+  const parts = name.trim().split(/\s+/);
+  if (!parts[0]) return "??";
+  return parts.map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+};
 const now = () => new Date().toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 function toast(msg, type = "success") {
@@ -169,7 +180,7 @@ function renderHome() {
         <div class="list">
           ${topProducts.map(p => `
             <div class="row-card" style="min-height:60px; padding:10px 16px">
-              <b>${p.name}</b>
+              <b>${esc(p.name)}</b>
               <span class="pill">${p.count}</span>
             </div>
           `).join("") || "<p>Aucune vente.</p>"}
@@ -195,11 +206,8 @@ function getSalesLast7Days() {
     d.setDate(today.getDate() - i);
     const label = days[d.getDay()];
     const dateStr = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-
-    // Simuler le comptage pour la démo car "at" est une string locale complexe
-    // Dans un vrai cas, on parserait la date correctement.
     const count = db.sales.filter(s => s.at.includes(dateStr)).length;
-    results.push({ label, count });
+    results.push({ label: dateStr === today.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) ? "Auj." : label, count });
   }
 
   const max = Math.max(...results.map(r => r.count), 1);
@@ -227,7 +235,7 @@ function bindTiles() {
 
 function clientCard(c) {
   return `
-    <div class="client-head"><div class="avatar">${initials(c.name)}</div><div><h2>${c.name}</h2><p>${c.phone} • ${c.segment}</p><p>${c.email}</p></div></div>
+    <div class="client-head"><div class="avatar">${esc(initials(c.name))}</div><div><h2>${esc(c.name)}</h2><p>${esc(c.phone)} • ${esc(c.segment)}</p><p>${esc(c.email)}</p></div></div>
     <div class="stamp-ring"><div><strong>${c.stamps}</strong><span>/10 tampons</span></div></div>
     <div class="stamp-grid">${Array.from({ length: 10 }, (_, i) => `<button class="stamp ${i < c.stamps ? "done" : ""}" data-stamp="${i + 1}">${i < c.stamps ? "OK" : "+"}</button>`).join("")}</div>
     <div class="big-actions"><button class="primary" data-action="add">+1</button><button class="danger" data-action="remove">-1</button><button class="ghost" data-action="reward">Cadeau</button></div>`;
@@ -252,6 +260,8 @@ function addHistory(clientId, sign, label) {
   db.history.unshift({ clientId, sign, label, at: now() });
 }
 
+let sellCategory = "Tous";
+
 function renderSell() {
   const titles = ["Choisir le client", "Choisir le produit", "Choisir la quantité", "Récapitulatif"];
   $("#sell").innerHTML = `
@@ -261,7 +271,14 @@ function renderSell() {
         <span class="pill">${sale.items.length} article(s)</span>
       </div>
       ${sale.step === 0 ? clientChoices() : ""}
-      ${sale.step === 1 ? productChoices() : ""}
+      ${sale.step === 1 ? `
+        <div class="cat-filter">
+          ${["Tous", "Fleurs", "Résines", "Huiles", "Aliments", "Vapes"].map(c => `
+            <button class="cat-btn ${sellCategory === c ? "active" : ""}" onclick="sellCategory='${c}'; renderSell();">${c}</button>
+          `).join("")}
+        </div>
+        ${productChoices()}
+      ` : ""}
       ${sale.step === 2 ? qtyChoices() : ""}
       ${sale.step === 3 ? cartChoices() : ""}
       <div class="big-actions">
@@ -297,10 +314,23 @@ function renderSell() {
 }
 
 function clientChoices() {
-  return `<div class="choice-grid"><button class="choice ${!sale.clientId ? "active" : ""}" data-client="">Non membre<span>Vente comptoir</span></button>${db.clients.map((c) => `<button class="choice ${sale.clientId === c.id ? "active" : ""}" data-client="${c.id}"><b>${c.name}</b><span>${c.stamps}/10 tampons</span></button>`).join("")}</div>`;
+  return `<div class="choice-grid"><button class="choice ${!sale.clientId ? "active" : ""}" data-client="">Non membre<span>Vente comptoir</span></button>${db.clients.map((c) => `<button class="choice ${sale.clientId === c.id ? "active" : ""}" data-client="${c.id}"><b>${esc(c.name)}</b><span>${c.stamps}/10 tampons</span></button>`).join("")}</div>`;
 }
 function productChoices() {
-  return `<div class="choice-grid">${db.products.map((p) => `<button class="choice ${sale.curProd === p.id ? "active" : ""}" data-product="${p.id}"><b>${p.name}</b><span>${p.stock} ${p.unit} • ${p.category}</span></button>`).join("")}</div>`;
+  const filtered = sellCategory === "Tous" ? db.products : db.products.filter(p => p.category === sellCategory);
+  return `
+    <div class="choice-grid">
+      ${filtered.map((p) => `
+        <button class="choice prod-card ${sale.curProd === p.id ? "active" : ""}" data-product="${p.id}">
+          ${p.img ? `<img src="${esc(p.img)}" class="prod-img">` : `<div class="prod-img-placeholder">${esc(p.category[0])}</div>`}
+          <div class="prod-info">
+            <b>${esc(p.name)}</b>
+            <span>${p.stock} ${esc(p.unit)}</span>
+          </div>
+          ${p.stock <= p.alert ? `<span class="prod-alert">Bas</span>` : ""}
+        </button>
+      `).join("")}
+    </div>`;
 }
 function qtyChoices() {
   return `<div class="qty-display">${sale.curQty}</div><div class="qty-pad">${[.5, 1, 2, 5, 10, -.5, -1, "reset"].map((q) => `<button data-qty="${q}">${q === "reset" ? "Reset" : q > 0 ? "+" + q : q}</button>`).join("")}</div>`;
@@ -310,7 +340,7 @@ function cartChoices() {
     <div class="list" style="margin-bottom:14px">
       ${sale.items.map((it, idx) => `
         <div class="row-card">
-          <div><b>${product(it.productId).name}</b><span>${it.qty} ${product(it.productId).unit}</span></div>
+          <div><b>${esc(product(it.productId).name)}</b><span>${it.qty} ${esc(product(it.productId).unit)}</span></div>
           <button class="danger" style="min-height:40px; padding:0 12px; border-radius:10px" onclick="sale.items.splice(${idx},1); renderSell();">×</button>
         </div>
       `).join("")}
@@ -342,7 +372,7 @@ function completeSale() {
 function renderClient() {
   const c = currentClient();
   const h = db.history.filter((x) => x.clientId === c.id).slice(0, 8);
-  $("#client").innerHTML = `<div class="grid cols-2"><section class="client-card">${clientCard(c)}</section><section class="panel"><h2>Historique</h2><div class="list">${h.map((x) => `<div class="row-card"><div><b>${x.label}</b><span>${x.at}</span></div><span class="pill">${x.sign}</span></div>`).join("") || "<p>Aucun historique.</p>"}</div><h2>Note</h2><textarea id="note" class="search">${c.notes || ""}</textarea><button id="saveNote" class="primary" style="width:100%">Sauvegarder</button></section></div>`;
+  $("#client").innerHTML = `<div class="grid cols-2"><section class="client-card">${clientCard(c)}</section><section class="panel"><h2>Historique</h2><div class="list">${h.map((x) => `<div class="row-card"><div><b>${esc(x.label)}</b><span>${esc(x.at)}</span></div><span class="pill">${esc(x.sign)}</span></div>`).join("") || "<p>Aucun historique.</p>"}</div><h2>Note</h2><textarea id="note" class="search">${esc(c.notes || "")}</textarea><button id="saveNote" class="primary" style="width:100%">Sauvegarder</button></section></div>`;
   bindClientActions();
   $("#saveNote").addEventListener("click", () => { c.notes = $("#note").value; save(); toast("Note sauvée"); });
 }
@@ -362,7 +392,7 @@ function renderClients() {
     $("#rows").innerHTML = rows.map((c) => `
       <div class="row-card">
         <div style="flex:1; cursor:pointer" data-open="${c.id}">
-          <b>${c.name}</b><span>${c.phone} • ${c.email}</span>
+          <b>${esc(c.name)}</b><span>${esc(c.phone)} • ${esc(c.email)}</span>
         </div>
         <span class="pill" style="margin-right:10px">${c.stamps}/10</span>
         <button class="ghost" style="min-height:50px; padding:0 15px; border-radius:12px" data-edit-client="${c.id}">✎</button>
@@ -380,9 +410,9 @@ function openClientModal(id = null) {
   showModal(`
     <h2>${id ? "Modifier client" : "Nouveau client"}</h2>
     <div style="margin-top:20px; display:grid; gap:12px">
-      <input id="c_name" class="search" placeholder="Nom complet" value="${c.name}">
-      <input id="c_phone" class="search" placeholder="Téléphone" value="${c.phone}">
-      <input id="c_email" class="search" placeholder="Email" value="${c.email}">
+      <input id="c_name" class="search" placeholder="Nom complet" value="${esc(c.name)}">
+      <input id="c_phone" class="search" placeholder="Téléphone" value="${esc(c.phone)}">
+      <input id="c_email" class="search" placeholder="Email" value="${esc(c.email)}">
       <select id="c_segment" class="search">
         <option ${c.segment === "Client" ? "selected" : ""}>Client</option>
         <option ${c.segment === "Gros client" ? "selected" : ""}>Gros client</option>
@@ -396,7 +426,7 @@ function openClientModal(id = null) {
     ${id ? `<button class="danger" id="delClientBtn" style="width:100%; margin-top:12px; min-height:50px; font-size:16px">Supprimer le client</button>` : ""}
   `);
   $("#saveClientBtn").onclick = () => saveClient(id);
-  if ($("#delClientBtn")) $("#delClientBtn").onclick = () => confirmAction(`Supprimer ${c.name} ?`, () => deleteClient(id));
+  if ($("#delClientBtn")) $("#delClientBtn").onclick = () => confirmAction(`Supprimer ${esc(c.name)} ?`, () => deleteClient(id));
 }
 
 function saveClient(id) {
@@ -434,12 +464,12 @@ function renderStock() {
         return `
           <div class="row-card">
             <div style="flex:1">
-              <b>${p.name}</b>
-              <span>${p.category} • ${p.unit}</span>
+              <b>${esc(p.name)}</b>
+              <span>${esc(p.category)} • ${esc(p.unit)}</span>
               <div class="gauge-container"><div class="gauge-bar ${status}" style="width:${pct}%"></div></div>
             </div>
             <div style="text-align:right; margin-left:14px">
-              <span class="pill ${status}">${p.stock} ${p.unit}</span>
+              <span class="pill ${status}">${p.stock} ${esc(p.unit)}</span>
               ${db.role === "admin" ? `<button class="ghost" style="margin-top:8px; min-height:40px; padding:0 10px; border-radius:10px; font-size:14px" data-edit-product="${p.id}">Modifier</button>` : ""}
             </div>
           </div>`;
@@ -460,10 +490,10 @@ function openProductModal(id = null) {
   showModal(`
     <h2>${id ? "Modifier produit" : "Nouveau produit"}</h2>
     <div style="margin-top:20px; display:grid; gap:12px">
-      <input id="p_name" class="search" placeholder="Nom du produit" value="${p.name}">
+      <input id="p_name" class="search" placeholder="Nom du produit" value="${esc(p.name)}">
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
-        <input id="p_category" class="search" placeholder="Catégorie" value="${p.category}">
-        <input id="p_unit" class="search" placeholder="Unité (g, pce...)" value="${p.unit}">
+        <input id="p_category" class="search" placeholder="Catégorie" value="${esc(p.category)}">
+        <input id="p_unit" class="search" placeholder="Unité (g, pce...)" value="${esc(p.unit)}">
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
         <div><label style="font-size:12px; color:var(--muted)">Stock actuel</label><input id="p_stock" type="number" class="search" value="${p.stock}"></div>
@@ -477,7 +507,7 @@ function openProductModal(id = null) {
     ${id ? `<button class="danger" id="delProductBtn" style="width:100%; margin-top:12px; min-height:50px; font-size:16px">Supprimer le produit</button>` : ""}
   `);
   $("#saveProductBtn").onclick = () => saveProduct(id);
-  if ($("#delProductBtn")) $("#delProductBtn").onclick = () => confirmAction(`Supprimer ${p.name} ?`, () => deleteProduct(id));
+  if ($("#delProductBtn")) $("#delProductBtn").onclick = () => confirmAction(`Supprimer ${esc(p.name)} ?`, () => deleteProduct(id));
 }
 
 function saveProduct(id) {
@@ -506,7 +536,7 @@ function deleteProduct(id) {
 function renderAdmin() {
   if (db.role !== "admin") return setScreen("home");
   const data = JSON.stringify(db, null, 2);
-  $("#admin").innerHTML = `<section class="panel"><div class="grid cards"><button id="export" class="tile"><span class="icon">⬇</span><strong>Export</strong><span>Sauvegarde JSON</span></button><button id="import" class="tile"><span class="icon">⬆</span><strong>Import</strong><span>Restaurer JSON</span></button><button id="reset" class="tile"><span class="icon">↻</span><strong>Reset</strong><span>Données démo</span></button></div><textarea class="search" style="height:220px;margin-top:14px">${data}</textarea></section>`;
+  $("#admin").innerHTML = `<section class="panel"><div class="grid cards"><button id="export" class="tile"><span class="icon">⬇</span><strong>Export</strong><span>Sauvegarde JSON</span></button><button id="import" class="tile"><span class="icon">⬆</span><strong>Import</strong><span>Restaurer JSON</span></button><button id="reset" class="tile"><span class="icon">↻</span><strong>Reset</strong><span>Données démo</span></button></div><textarea class="search" style="height:220px;margin-top:14px">${esc(data)}</textarea></section>`;
   $("#export").addEventListener("click", exportJson);
   $("#import").addEventListener("click", () => $("#importFile").click());
   $("#reset").addEventListener("click", () => { if (!confirm("Réinitialiser ?")) return; localStorage.removeItem(KEY); db = structuredClone(seed); db.role = "admin"; save(); boot(); });
