@@ -5,6 +5,7 @@ const seed = {
   selectedClientId: "c1",
   config: {
     pins: { admin: "0420", staff: "2024" },
+    commissionRate: 2, // 2% commission
     theme: "#79c93c",
     shopName: "O'LAB CBD",
     currency: "€",
@@ -58,6 +59,12 @@ const seed = {
     { id: "e1", label: "Loyer Mai", amount: 1200, category: "Fixe", ts: Date.now() - 86400000 * 5 },
     { id: "e2", label: "Achat Stock Fleurs", amount: 450, category: "Stock", ts: Date.now() - 86400000 * 2 }
   ],
+  suppliers: [
+    { id: "s1", name: "BioCBD Europe", contact: "contact@biocbd.eu", category: "Fleurs/Résines" },
+    { id: "s2", name: "HempDistri", contact: "sales@hempdistri.fr", category: "Huiles" }
+  ],
+  purchaseOrders: [],
+  auditLog: [],
   history: [],
   pendingSales: []
 };
@@ -66,6 +73,9 @@ let db = JSON.parse(localStorage.getItem(KEY) || "null") || structuredClone(seed
 
 if (!db.config) db.config = structuredClone(seed.config);
 if (!db.expenses) db.expenses = [];
+if (!db.suppliers) db.suppliers = [];
+if (!db.purchaseOrders) db.purchaseOrders = [];
+if (!db.auditLog) db.auditLog = [];
 if (!db.pendingSales) db.pendingSales = [];
 if (!db.config.theme) db.config.theme = "#79c93c";
 
@@ -218,6 +228,7 @@ function metrics() {
   };
 }
 
+let currentUser = "Admin";
 let currentPin = "";
 function updatePinUI() {
   const dots = $$("#pinDots span");
@@ -235,6 +246,7 @@ function unlock() {
     return;
   }
   db.role = selectedRole;
+  currentUser = selectedRole === "admin" ? "Admin" : "Staff";
   currentPin = "";
   updatePinUI();
   save();
@@ -265,8 +277,13 @@ function renderNav() {
     ["clients", "Clients"],
     ["stock", "Stock"],
   ];
-  if (db.role === "admin") items.push(["admin", "Admin"]);
-  const icons = { home: 'home', sell: 'shopping-cart', client: 'user', clients: 'users', stock: 'package', admin: 'settings' };
+  if (db.role === "admin") {
+    items.push(["supply", "Achats"]);
+    items.push(["hr", "Équipe"]);
+    items.push(["audit", "Audit"]);
+    items.push(["admin", "Admin"]);
+  }
+  const icons = { home: 'home', sell: 'shopping-cart', client: 'user', clients: 'users', stock: 'package', supply: 'truck', hr: 'award', audit: 'shield', admin: 'settings' };
   $("#bottomNav").innerHTML = items.map(([id, label]) => `
     <button data-screen="${id}">
       <i data-lucide="${icons[id]}" style="width:20px;height:20px"></i>
@@ -279,7 +296,7 @@ function setScreen(screen) {
   currentScreen = screen;
   $$(".screen").forEach((el) => el.classList.toggle("active", el.id === screen));
   $$("#bottomNav button").forEach((el) => el.classList.toggle("active", el.dataset.screen === screen));
-  $("#screenTitle").textContent = { home: "Tableau de bord", sell: "Vente Pro", client: "Fiche client", clients: "Gestion Clients", stock: "Inventaire", admin: "Paramètres Système" }[screen];
+  $("#screenTitle").textContent = { home: "Tableau de bord", sell: "Vente Pro", client: "Fiche client", clients: "Gestion Clients", stock: "Inventaire", supply: "Approvisionnement", hr: "Performance Équipe", audit: "Journal de Sécurité", admin: "Paramètres Système" }[screen];
   render();
 }
 
@@ -289,8 +306,176 @@ function render() {
   if (currentScreen === "client") renderClient();
   if (currentScreen === "clients") renderClients();
   if (currentScreen === "stock") renderStock();
+  if (currentScreen === "supply") renderSupply();
+  if (currentScreen === "hr") renderHR();
+  if (currentScreen === "audit") renderAudit();
   if (currentScreen === "admin") renderAdmin();
   lucide.createIcons();
+}
+
+function renderAudit() {
+  $("#audit").innerHTML = `
+    <section class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+        <h2 style="margin:0">Journal d'Audit Système</h2>
+        <button class="btn ghost" onclick="db.auditLog=[]; save(); renderAudit();">Effacer</button>
+      </div>
+      <div class="list">
+        ${db.auditLog.map(l => `
+          <div class="row-card" style="min-height:70px">
+            <div style="font-size:12px; opacity:0.6; width:140px">${fmt(l.ts)}</div>
+            <div style="flex:1">
+              <b style="color:var(--green)">${l.action}</b>
+              <p style="margin:4px 0 0; font-size:13px; opacity:0.8">${esc(l.details)}</p>
+            </div>
+            <div class="pill" style="font-size:10px">${l.role}</div>
+          </div>
+        `).join("") || "<p>Aucune action enregistrée.</p>"}
+      </div>
+    </section>
+  `;
+}
+
+function renderHR() {
+  const sellers = ["Admin", "Staff"];
+  const stats = sellers.map(name => {
+    const sSales = db.sales.filter(s => s.seller === name);
+    const rev = sSales.reduce((sum, s) => sum + s.total, 0);
+    return {
+      name,
+      count: sSales.length,
+      revenue: rev,
+      commission: rev * (db.config.commissionRate / 100)
+    };
+  });
+
+  $("#hr").innerHTML = `
+    <div class="grid cols-2">
+      <section class="panel">
+        <h2>Performance Vendeurs</h2>
+        <div class="list">
+          ${stats.map(s => `
+            <div class="row-card">
+              <div style="display:flex; align-items:center; gap:12px">
+                <div class="avatar" style="width:40px; height:40px; font-size:14px">${initials(s.name)}</div>
+                <div><b>${s.name}</b><span>${s.count} ventes</span></div>
+              </div>
+              <div style="text-align:right">
+                <b style="color:var(--green)">${s.revenue.toFixed(2)}€</b>
+                <div style="font-size:12px; color:var(--gold)">Com: ${s.commission.toFixed(2)}€</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Objectifs du shop</h2>
+        <div class="tile" style="min-height:auto; margin-bottom:14px">
+           <i data-lucide="target" class="icon"></i>
+           <strong>${(stats.reduce((a,b)=>a+b.revenue,0)).toFixed(0)}€ / 5000€</strong>
+           <span>Objectif Mensuel</span>
+           <div class="gauge-container"><div class="gauge-bar" style="width:${Math.min(100, (stats.reduce((a,b)=>a+b.revenue,0)/5000)*100)}%"></div></div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderSupply() {
+  const pendingOrders = db.purchaseOrders.filter(o => o.status === "Pending");
+
+  $("#supply").innerHTML = `
+    <div class="grid cols-2">
+      <section class="panel">
+        <h2>Commandes en cours</h2>
+        <div class="list">
+          ${pendingOrders.map(o => `
+            <div class="row-card">
+              <div>
+                <b>PO #${o.id.slice(0,6)}</b>
+                <span>${db.suppliers.find(s => s.id === o.supplierId)?.name}</span>
+              </div>
+              <div style="text-align:right">
+                <button class="primary" onclick="receiveOrder('${o.id}')" style="min-height:44px; padding:0 12px; font-size:14px">Réceptionner</button>
+              </div>
+            </div>
+          `).join("") || "<p>Aucune commande en attente.</p>"}
+        </div>
+        <button class="primary" style="width:100%; margin-top:20px" onclick="openPOModal()">+ Nouvelle Commande (PO)</button>
+      </section>
+      <section class="panel">
+        <h2>Fournisseurs</h2>
+        <div class="list">
+          ${db.suppliers.map(s => `
+            <div class="row-card">
+              <div><b>${esc(s.name)}</b><span>${esc(s.contact)}</span></div>
+              <span class="pill">${s.category}</span>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function openPOModal() {
+  showModal(`
+    <h2>Créer un Bon de Commande</h2>
+    <p>Fournisseur :</p>
+    <select id="po_supplier" class="search">
+      ${db.suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join("")}
+    </select>
+    <p>Produit :</p>
+    <select id="po_product" class="search">
+      ${db.products.map(p => `<option value="${p.id}">${p.name}</option>`).join("")}
+    </select>
+    <input id="po_qty" type="number" class="search" placeholder="Quantité à commander">
+    <div class="big-actions">
+      <button class="ghost" onclick="hideModal()">Annuler</button>
+      <button class="primary" id="savePO">Lancer la commande</button>
+    </div>
+  `);
+
+  $("#savePO").onclick = () => {
+    const sId = $("#po_supplier").value;
+    const pId = $("#po_product").value;
+    const qty = Number($("#po_qty").value);
+    if (!qty) return toast("Saisir une quantité", "error");
+
+    db.purchaseOrders.push({
+      id: crypto.randomUUID(),
+      supplierId: sId,
+      productId: pId,
+      qty,
+      status: "Pending",
+      ts: Date.now()
+    });
+    save(); hideModal(); renderSupply(); toast("PO créé");
+    logAudit("COMMANDE_STOCK", `PO créé pour ${product(pId).name} (${qty})`);
+  };
+}
+
+function receiveOrder(id) {
+  const po = db.purchaseOrders.find(o => o.id === id);
+  const p = product(po.productId);
+
+  confirmAction(`Réceptionner ${po.qty} ${p.unit} pour ${p.name} ?`, () => {
+    p.stock += po.qty;
+    po.status = "Received";
+    po.receivedTs = Date.now();
+    save(); renderSupply(); toast("Stock mis à jour");
+    logAudit("RECEPTION_STOCK", `Réception de ${po.qty} pour ${p.name}`);
+  });
+}
+
+function logAudit(action, details) {
+  db.auditLog.unshift({
+    ts: Date.now(),
+    role: db.role,
+    action,
+    details
+  });
+  save();
 }
 
 function renderHome() {
@@ -312,18 +497,22 @@ function renderHome() {
           <span>Revenus Jour</span>
         </div>
         <div class="tile" style="background:linear-gradient(135deg, rgba(224,82,75,0.1), transparent)">
-          <i data-lucide="pie-chart" class="icon" style="color:var(--red)"></i>
-          <strong>${m.todayProfit.toFixed(2)}€</strong>
-          <span>Profit Net Jour</span>
+          <i data-lucide="award" class="icon" style="color:var(--gold)"></i>
+          <strong>${m.qty}</strong>
+          <span>Unités Vendues</span>
         </div>
         ${tile("shopping-cart", "Vente", "Démarrer un panier", "sell")}
-        ${tile("package", "Stocks", `${m.alerts} alertes`, "stock")}
+        ${tile("truck", "Achats", `Stock & Supply`, "supply")}
       </section>
     </div>
     <div class="grid cards" style="margin-top:14px">
       <div class="panel card-chart" style="grid-column: span 2">
         <h3 style="margin-bottom:14px">Performance 7 Jours</h3>
         <canvas id="salesChart" height="200"></canvas>
+      </div>
+      <div class="panel card-chart">
+        <h3 style="margin-bottom:14px">Répartition par Catégorie</h3>
+        <canvas id="catChart" height="200"></canvas>
       </div>
         <div class="panel">
           <h2 style="font-size:18px; margin-bottom:10px">Heatmap Horaire</h2>
@@ -366,6 +555,7 @@ function renderHeatmap() {
 
 function initHomeCharts() {
   const ctx = $("#salesChart")?.getContext("2d");
+  const ctx2 = $("#catChart")?.getContext("2d");
   if (!ctx) return;
   const salesData = getSalesLast7Days();
   new Chart(ctx, {
@@ -399,6 +589,39 @@ function initHomeCharts() {
       }
     }
   });
+
+  if (ctx2) {
+    const catData = getSalesByCategory();
+    new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(catData),
+        datasets: [{
+          data: Object.values(catData),
+          backgroundColor: [db.config.theme, '#f5c958', '#e0524b', '#4285f4', '#9c27b0'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.6)', font: { size: 10 } } } },
+        cutout: '70%'
+      }
+    });
+  }
+}
+
+function getSalesByCategory() {
+  const cats = {};
+  db.sales.forEach(s => {
+    s.items.forEach(it => {
+      const p = product(it.productId);
+      const cat = p ? p.category : "Autre";
+      cats[cat] = (cats[cat] || 0) + (it.qty * it.price);
+    });
+  });
+  return cats;
 }
 
 function getSalesLast7Days() {
@@ -734,6 +957,7 @@ function completeSale() {
 
   const saleRecord = {
     ...structuredClone(sale),
+    seller: currentUser,
     total,
     ts: Date.now(),
     discount: disc + manualDisc + rankDisc,
@@ -742,6 +966,7 @@ function completeSale() {
   };
 
   db.sales.unshift(saleRecord);
+  logAudit("VENTE", `Vente validée par ${currentUser} - Total: ${total.toFixed(2)}€`);
   sale.items.forEach(it => {
     const p = product(it.productId);
     const v = p.variants?.find(x => x.id === it.variantId);
@@ -913,7 +1138,7 @@ function renderAdmin() {
                 <div><b>${esc(e.label)}</b><span>${fmt(e.ts)}</span></div>
                 <div style="display:flex; align-items:center; gap:10px">
                   <b style="color:var(--red)">-${e.amount}€</b>
-                  <button class="danger" onclick="deleteExpense(${e.id})" style="min-height:36px; padding:0 8px; font-size:12px">×</button>
+                  <button class="danger" onclick="deleteExpense('${e.id}')" style="min-height:36px; padding:0 8px; font-size:12px">×</button>
                 </div>
               </div>`).join("") || "<p>Aucune dépense.</p>"}
           </div>
@@ -947,7 +1172,7 @@ function renderAdmin() {
   $("#zReport").onclick = generateZReport;
   $("#exportCompta").onclick = exportFEC;
   $("#exportData").onclick = exportJson;
-  $("#resetData").onclick = () => { if(confirm("Effacer ?")) { localStorage.removeItem(KEY); location.reload(); } };
+  $("#resetData").onclick = () => { if(confirm("Effacer ?")) { logAudit("RESET_DATA", "Réinitialisation complète de la base"); localStorage.removeItem(KEY); location.reload(); } };
 }
 
 function getMonthlyStats() {
@@ -1065,6 +1290,8 @@ window.putSaleOnHold = putSaleOnHold;
 window.openExpenseModal = openExpenseModal;
 window.deleteExpense = deleteExpense;
 window.openDiscountModal = openDiscountModal;
+window.openPOModal = openPOModal;
+window.receiveOrder = receiveOrder;
 window.startScanner = () => {
   const overlay = $("#reader");
   if (!overlay) return toast("Scanner non prêt", "error");
