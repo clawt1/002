@@ -7,6 +7,11 @@
   <title>O'LAB 004 - Tablette locale</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="style.css">
+  <!-- Libs Externes -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <main id="app" class="tablet-app">
@@ -15,10 +20,21 @@
       <h1>Tablette locale</h1>
       <p>Fonctionne sans serveur, données stockées sur cette tablette.</p>
       <div class="pin-pad">
-        <button data-role="admin" class="role active">Administrateur<span>PIN 0420</span></button>
-        <button data-role="staff" class="role">Staff<span>PIN 2024</span></button>
-        <input id="pin" inputmode="numeric" maxlength="4" placeholder="PIN">
-        <button id="unlock" class="unlock">Déverrouiller</button>
+        <div class="pin-roles">
+          <button data-role="admin" class="role active">Administrateur<span>PIN 0420</span></button>
+          <button data-role="staff" class="role">Staff<span>PIN 2024</span></button>
+        </div>
+        <div class="pin-display">
+          <div id="pinDots" class="pin-dots">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="pin-grid">
+          <button class="pin-btn">1</button><button class="pin-btn">2</button><button class="pin-btn">3</button>
+          <button class="pin-btn">4</button><button class="pin-btn">5</button><button class="pin-btn">6</button>
+          <button class="pin-btn">7</button><button class="pin-btn">8</button><button class="pin-btn">9</button>
+          <button class="pin-btn danger" id="pinClear">C</button><button class="pin-btn">0</button><button class="pin-btn ghost" id="pinBack">⌫</button>
+        </div>
       </div>
     </section>
 
@@ -32,6 +48,7 @@
           </div>
         </div>
         <div class="top-actions">
+          <button id="searchBtn" style="background:var(--glass); border:1px solid var(--line);"><i data-lucide="search"></i> <span style="margin-left:8px; font-size:12px; opacity:0.6">Ctrl+K</span></button>
           <button id="syncBtn">Sauvegarde locale</button>
           <button id="lockBtn">Verrouiller</button>
         </div>
@@ -47,6 +64,22 @@
       <nav class="bottom-nav" id="bottomNav"></nav>
     </section>
   </main>
+
+  <div id="reader" class="scanner-overlay hidden">
+    <div id="qr-reader"></div>
+    <button id="closeScanner" class="btn secondary">Fermer le scanner</button>
+  </div>
+
+  <div id="omnisearch" class="modal hidden">
+    <div class="modal-content" style="padding:0; overflow:hidden; border-radius:20px; width:min(700px, 95vw)">
+      <div style="padding:20px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px">
+        <i data-lucide="search" style="opacity:0.5"></i>
+        <input id="omniInput" type="text" placeholder="Recherche universelle (Produit, Client, Action...)" style="flex:1; background:transparent; border:0; color:#fff; outline:0; font-size:20px">
+        <kbd style="font-size:12px; background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:4px; opacity:0.5">ESC</kbd>
+      </div>
+      <div id="omniResults" style="max-height:400px; overflow:auto; padding:10px"></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <div id="modal" class="modal hidden"></div>

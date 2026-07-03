@@ -1,27 +1,34 @@
-# O'LAB 004 - Tablette 100% locale
+# O'LAB Ultimate Pro 🚀
 
-Version pensée pour tablette de comptoir.
+Système ERP/POS "All-in-One" pour tablettes, conçu pour une gestion ultra-fluide et professionnelle des boutiques CBD.
 
-## Accès
+## ✨ Fonctionnalités "Ultimate Pro"
 
-- Administrateur : PIN `0420`
-- Staff : PIN `2024`
+### 🛒 Vente Avancée
+- **Workflow Tactile Optimisé :** Client → Produit → Variante → Paiement.
+- **Gestion des Variantes :** Prix dégressifs selon le poids ou le format (ex: 1g, 5g, 10g).
+- **Ventes Suspendues :** Mettez un panier en attente pour servir un autre client. Reprenez-le en un clic.
+- **Remises Flexibles :** Appliquez des remises en % ou en € directement sur le total.
 
-## Mode local
+### 📊 Business Intelligence & Compta
+- **Suivi des Dépenses :** Enregistrez vos charges (loyer, stock, factures) pour un calcul de profit réel.
+- **Marge Nette :** Visualisez votre profit réel mois par mois, pas seulement votre chiffre d'affaires.
+- **Dashboard Dual-Axis :** Graphiques Chart.js combinant CA et Profit.
 
-Ouvrir `index.html` directement dans le navigateur de la tablette.
+### 🎨 Personnalisation & Sécurité
+- **Moteur de Thème :** Changez la couleur d'accentuation de toute l'application.
+- **Feedback Sonore :** Sons de validation pour une expérience tactile immersive.
+- **PIN Multi-Rôles :** Accès Admin ou Staff sécurisé par code.
 
-Si servi via un petit serveur local, le service worker active le cache offline.
+### 📦 Logistique
+- **Inventaire Visuel :** Jauges de stock avec alertes visuelles paramétrables.
+- **Scanner Intégré :** Identification instantanée des clients et produits par caméra.
+- **Offline First :** Fonctionne à 100% sans connexion internet.
 
-## Fonctionnalités
+## 🛠 Installation & Utilisation
+Ouvrez simplement `index.html` dans un navigateur moderne sur tablette.
+- **PIN Admin par défaut :** `0420`
+- **PIN Staff par défaut :** `2024`
 
-- Données 100% locales via `localStorage`.
-- Vente tactile en 3 étapes.
-- Client membre ou non-membre.
-- Carte tampons graphique.
-- Ajout/retrait/récompense.
-- Recherche client tactile.
-- Stock local.
-- Réassort alertes pour administrateur.
-- Export/import JSON pour sauvegarder la tablette.
-- Deux rôles uniquement : Administrateur et Staff.
+## 🧪 Tests
+Le dossier `tests/` contient des scripts de validation Playwright/Python pour vérifier les flux critiques.

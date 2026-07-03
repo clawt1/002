@@ -7,7 +7,11 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./assets/olab-loyalty-logo.svg",
   "./assets/diapo-gouts-exception.jpg",
-  "./assets/fast-delivery.png"
+  "./assets/fast-delivery.png",
+  "https://cdn.jsdelivr.net/npm/chart.js",
+  "https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js",
+  "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js",
+  "https://unpkg.com/lucide@latest"
 ];
 
 self.addEventListener("install", (event) => {
